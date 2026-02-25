@@ -20,6 +20,7 @@ export { RandomizationEngine } from './engine/index.js';
 export { SeededPRNG } from './prng/index.js';
 export { StatisticalSpoofer, CategoricalSpoofer } from './spoofers/index.js';
 export { GenerativeFuzzer } from './fuzzer/index.js';
+export { WeatherModifier, EconomyModifier } from './modifiers/index.js';
 export type {
   GaussianOptions,
   UniformOptions,
@@ -31,3 +32,10 @@ export type {
   LLMProviderFn,
   LLMProviderRegistry,
 } from './types/index.js';
+export type {
+  WeatherState,
+  WeatherBaseline,
+  EconomyState,
+  EconomyItem,
+  InflationStressorOptions,
+} from './modifiers/index.js';
