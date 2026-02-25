@@ -49,4 +49,30 @@ describe('SeededPRNG', () => {
       expect(prng.next()).toBe(fresh.next());
     }
   });
+
+  it('accepts a string seed and is deterministic', () => {
+    const prng1 = new SeededPRNG('hello');
+    const prng2 = new SeededPRNG('hello');
+    const seq1 = Array.from({ length: 10 }, () => prng1.next());
+    const seq2 = Array.from({ length: 10 }, () => prng2.next());
+    expect(seq1).toEqual(seq2);
+  });
+
+  it('produces different sequences for different string seeds', () => {
+    const prng1 = new SeededPRNG('seed-A');
+    const prng2 = new SeededPRNG('seed-B');
+    const seq1 = Array.from({ length: 10 }, () => prng1.next());
+    const seq2 = Array.from({ length: 10 }, () => prng2.next());
+    expect(seq1).not.toEqual(seq2);
+  });
+
+  it('reseed with a string resets to the same sequence', () => {
+    const prng = new SeededPRNG('world');
+    prng.next();
+    prng.reseed('world');
+    const fresh = new SeededPRNG('world');
+    for (let i = 0; i < 20; i++) {
+      expect(prng.next()).toBe(fresh.next());
+    }
+  });
 });
