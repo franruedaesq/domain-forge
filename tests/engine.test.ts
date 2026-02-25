@@ -8,6 +8,21 @@ describe('RandomizationEngine', () => {
     expect(engine).toBeInstanceOf(RandomizationEngine);
   });
 
+  it('accepts a string seed', () => {
+    const engine = new RandomizationEngine({ seed: 'my-scenario' });
+    expect(engine).toBeInstanceOf(RandomizationEngine);
+  });
+
+  it('is deterministic with a string seed', async () => {
+    const e1 = new RandomizationEngine({ seed: 'test-scenario' });
+    const e2 = new RandomizationEngine({ seed: 'test-scenario' });
+    e1.applyGaussianNoise('gravity', { mean: 9.8, stdDev: 0.5 });
+    e2.applyGaussianNoise('gravity', { mean: 9.8, stdDev: 0.5 });
+    const s1 = await e1.generate();
+    const s2 = await e2.generate();
+    expect(s1.gravity).toBe(s2.gravity);
+  });
+
   it('uses a default seed when none is provided', () => {
     const engine = new RandomizationEngine();
     expect(engine).toBeInstanceOf(RandomizationEngine);

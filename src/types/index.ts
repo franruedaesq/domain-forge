@@ -42,8 +42,8 @@ export type GenerativeFuzzingOptions = z.infer<typeof GenerativeFuzzingOptionsSc
 
 /** Options for constructing a RandomizationEngine. */
 export const EngineOptionsSchema = z.object({
-  /** Seed for the PRNG. Defaults to a timestamp-based value if not provided. */
-  seed: z.number().int().optional(),
+  /** Seed for the PRNG. Accepts a number or a string (hashed internally). Defaults to a timestamp-based value if not provided. */
+  seed: z.union([z.number().int(), z.string()]).optional(),
 });
 export type EngineOptions = z.infer<typeof EngineOptionsSchema>;
 
