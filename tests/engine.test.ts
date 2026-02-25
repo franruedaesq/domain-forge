@@ -1,6 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { z } from 'zod';
 import { RandomizationEngine } from '../src/engine/RandomizationEngine.js';
+import { FuzzerTimeoutError } from '../src/fuzzer/GenerativeFuzzer.js';
+import type { ILLMProvider } from '../src/types/index.js';
 
 describe('RandomizationEngine', () => {
   it('can be constructed with a seed', () => {
@@ -221,5 +223,57 @@ describe('RandomizationEngine', () => {
     expect(typeof scenario.gravity).toBe('number');
     expect(['rain', 'sunny']).toContain(scenario.weather);
     expect(scenario.npc_personality).toBe('narrative text');
+  });
+
+  it('accepts an ILLMProvider object via registerProvider', async () => {
+    const provider: ILLMProvider = {
+      generate: vi.fn().mockResolvedValue('merchant dialogue'),
+    };
+
+    const scenario = await new RandomizationEngine({ seed: 10 })
+      .registerProvider('obj', provider)
+      .applyGenerativeFuzzing('dialogue', { provider: 'obj', prompt: 'Say something' })
+      .generate();
+
+    expect(scenario.dialogue).toBe('merchant dialogue');
+    expect(provider.generate).toHaveBeenCalledWith('Say something', undefined);
+  });
+
+  it('throws FuzzerTimeoutError from generate() when LLM times out and no fallback', async () => {
+    vi.useFakeTimers();
+    const slowFn = vi.fn().mockImplementation(
+      () => new Promise<string>((resolve) => setTimeout(() => resolve('late'), 5000)),
+    );
+
+    const engine = new RandomizationEngine({ seed: 1 })
+      .registerProvider('slow', slowFn)
+      .applyGenerativeFuzzing('personality', { provider: 'slow', prompt: 'test', timeoutMs: 100 });
+
+    const genPromise = engine.generate();
+    vi.advanceTimersByTime(200);
+    await expect(genPromise).rejects.toBeInstanceOf(FuzzerTimeoutError);
+    vi.useRealTimers();
+  });
+
+  it('injects fallback text into the correct JSON path when LLM times out', async () => {
+    vi.useFakeTimers();
+    const slowFn = vi.fn().mockImplementation(
+      () => new Promise<string>((resolve) => setTimeout(() => resolve('late'), 5000)),
+    );
+
+    const engine = new RandomizationEngine({ seed: 1 })
+      .registerProvider('slow', slowFn)
+      .applyGenerativeFuzzing('npc.personality', {
+        provider: 'slow',
+        prompt: 'test',
+        timeoutMs: 100,
+        fallback: 'default_npc',
+      });
+
+    const genPromise = engine.generate();
+    vi.advanceTimersByTime(200);
+    const scenario = await genPromise;
+    expect((scenario.npc as Record<string, unknown>).personality).toBe('default_npc');
+    vi.useRealTimers();
   });
 });

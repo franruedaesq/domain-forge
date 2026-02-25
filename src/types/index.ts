@@ -37,8 +37,33 @@ export const GenerativeFuzzingOptionsSchema = z.object({
   prompt: z.string().min(1),
   /** Optional model override. */
   model: z.string().optional(),
+  /** Timeout in milliseconds for the LLM call. */
+  timeoutMs: z.number().positive().optional(),
+  /** Fallback value to use when the LLM fails or times out. */
+  fallback: z.string().optional(),
 });
 export type GenerativeFuzzingOptions = z.infer<typeof GenerativeFuzzingOptionsSchema>;
+
+/**
+ * Interface for an injectable LLM provider object.
+ * Implement this interface to wrap any LLM client (OpenAI, Anthropic, local, etc.)
+ * without introducing hard dependencies on specific SDKs.
+ *
+ * @example
+ * ```ts
+ * class MyOpenAIProvider implements ILLMProvider {
+ *   async generate(prompt: string, model?: string): Promise<string> {
+ *     const res = await openai.chat.completions.create({ model: model ?? 'gpt-4o', ... });
+ *     return res.choices[0].message.content ?? '';
+ *   }
+ * }
+ * engine.registerProvider('openai', new MyOpenAIProvider());
+ * ```
+ */
+export interface ILLMProvider {
+  /** Generates text from a prompt, optionally using the specified model. */
+  generate(prompt: string, model?: string): Promise<string>;
+}
 
 /** Options for constructing a RandomizationEngine. */
 export const EngineOptionsSchema = z.object({

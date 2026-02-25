@@ -11,6 +11,7 @@ import {
   PoissonOptions,
   WeightedCategorical,
   GenerativeFuzzingOptions,
+  ILLMProvider,
   LLMProviderFn,
   ScenarioRecord,
 } from '../types/index.js';
@@ -143,12 +144,16 @@ export class RandomizationEngine {
 
   /**
    * Registers a named LLM provider for use with {@link applyGenerativeFuzzing}.
+   *
+   * Accepts either a plain async function or an object implementing
+   * {@link ILLMProvider}, keeping the library dependency-free of specific SDKs.
+   *
    * @param name - Provider identifier (e.g. 'openai').
-   * @param fn - Async function accepting a prompt and returning generated text.
+   * @param provider - Async function or {@link ILLMProvider} object.
    * @returns `this` for chaining.
    */
-  public registerProvider(name: string, fn: LLMProviderFn): this {
-    this.fuzzer.registerProvider(name, fn);
+  public registerProvider(name: string, provider: LLMProviderFn | ILLMProvider): this {
+    this.fuzzer.registerProvider(name, provider);
     return this;
   }
 
