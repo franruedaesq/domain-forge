@@ -1,1 +1,1 @@
-export { GenerativeFuzzer } from './GenerativeFuzzer.js';
+export { GenerativeFuzzer, FuzzerTimeoutError } from './GenerativeFuzzer.js';
