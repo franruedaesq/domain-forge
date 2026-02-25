@@ -135,6 +135,76 @@ describe('RandomizationEngine', () => {
     expect(mockLLM).toHaveBeenCalledWith('Generate a highly stressed merchant', undefined);
   });
 
+  it('accepts a deeply nested JSON object as a baseline', async () => {
+    const baseline = {
+      environment: {
+        temperature: 20,
+        humidity: 0.5,
+      },
+      agent: { health: 100 },
+    };
+
+    const scenario = await new RandomizationEngine({ seed: 1 })
+      .setBaseline(baseline)
+      .generate();
+
+    expect((scenario.environment as Record<string, unknown>).temperature).toBe(20);
+    expect((scenario.environment as Record<string, unknown>).humidity).toBe(0.5);
+    expect((scenario.agent as Record<string, unknown>).health).toBe(100);
+  });
+
+  it('applies uniform randomization to a nested path', async () => {
+    const baseline = {
+      environment: { temperature: 20, humidity: 0.5 },
+    };
+
+    const scenario = await new RandomizationEngine({ seed: 7 })
+      .setBaseline(baseline)
+      .applyUniform('environment.temperature', { min: -10, max: 40 })
+      .generate();
+
+    const temp = (scenario.environment as Record<string, unknown>).temperature as number;
+    expect(typeof temp).toBe('number');
+    expect(temp).toBeGreaterThanOrEqual(-10);
+    expect(temp).toBeLessThan(40);
+    // Other baseline fields preserved
+    expect((scenario.environment as Record<string, unknown>).humidity).toBe(0.5);
+  });
+
+  it('does not mutate the original baseline object', async () => {
+    const baseline = {
+      environment: { temperature: 20 },
+    };
+    const originalTemp = baseline.environment.temperature;
+
+    await new RandomizationEngine({ seed: 3 })
+      .setBaseline(baseline)
+      .applyUniform('environment.temperature', { min: -10, max: 40 })
+      .generate();
+
+    expect(baseline.environment.temperature).toBe(originalTemp);
+  });
+
+  it('setBaseline is chainable and supports nested dot-notation paths deterministically', async () => {
+    const baseline = { world: { gravity: 0, wind: 'calm' } };
+
+    const e1 = new RandomizationEngine({ seed: 42 })
+      .setBaseline(baseline)
+      .applyGaussianNoise('world.gravity', { mean: 9.8, stdDev: 0.5 });
+
+    const e2 = new RandomizationEngine({ seed: 42 })
+      .setBaseline(baseline)
+      .applyGaussianNoise('world.gravity', { mean: 9.8, stdDev: 0.5 });
+
+    const s1 = await e1.generate();
+    const s2 = await e2.generate();
+
+    expect((s1.world as Record<string, unknown>).gravity).toBe(
+      (s2.world as Record<string, unknown>).gravity,
+    );
+    // Non-randomized baseline field preserved
+    expect((s1.world as Record<string, unknown>).wind).toBe('calm');
+  });
   it('combines multiple field types in a single scenario', async () => {
     const mockLLM = vi.fn().mockResolvedValue('narrative text');
 

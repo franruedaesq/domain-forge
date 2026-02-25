@@ -15,6 +15,27 @@ import {
   ScenarioRecord,
 } from '../types/index.js';
 
+/**
+ * Sets a value at a dot-notation path within a nested object, creating
+ * intermediate objects as needed.
+ *
+ * @param obj - The target object to mutate.
+ * @param path - A dot-separated key path (e.g. `"environment.temperature"`).
+ * @param value - The value to set at the specified path.
+ */
+function setAtPath(obj: ScenarioRecord, path: string, value: unknown): void {
+  const parts = path.split('.');
+  let current: ScenarioRecord = obj;
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i]!;
+    if (typeof current[part] !== 'object' || current[part] === null) {
+      current[part] = {};
+    }
+    current = current[part] as ScenarioRecord;
+  }
+  current[parts[parts.length - 1]!] = value;
+}
+
 type OperationType = 'gaussian' | 'uniform' | 'poisson' | 'categorical' | 'generative';
 
 interface BaseOperation {
@@ -81,6 +102,7 @@ export class RandomizationEngine {
   private readonly fuzzer: GenerativeFuzzer;
   private readonly operations: Operation[];
   private zodSchema: ZodSchema | null;
+  private baseline: ScenarioRecord | null;
 
   /**
    * Creates a new RandomizationEngine.
@@ -93,6 +115,7 @@ export class RandomizationEngine {
     this.fuzzer = new GenerativeFuzzer();
     this.operations = [];
     this.zodSchema = null;
+    this.baseline = null;
   }
 
   /**
@@ -102,6 +125,19 @@ export class RandomizationEngine {
    */
   public schema<T>(schema: ZodSchema<T>): this {
     this.zodSchema = schema as ZodSchema;
+    return this;
+  }
+
+  /**
+   * Sets a deeply nested JSON object as the baseline for generated scenarios.
+   * The baseline is deep-cloned during {@link generate} so the original is
+   * never mutated. Randomization operations are applied on top of the clone.
+   *
+   * @param obj - A JSON-compatible nested object to use as the starting state.
+   * @returns `this` for chaining.
+   */
+  public setBaseline(obj: ScenarioRecord): this {
+    this.baseline = obj;
     return this;
   }
 
@@ -181,24 +217,26 @@ export class RandomizationEngine {
    * @throws If schema validation fails.
    */
   public async generate(): Promise<ScenarioRecord> {
-    const result: ScenarioRecord = {};
+    const result: ScenarioRecord = this.baseline
+      ? (JSON.parse(JSON.stringify(this.baseline)) as ScenarioRecord)
+      : {};
 
     for (const op of this.operations) {
       switch (op.type) {
         case 'gaussian':
-          result[op.field] = StatisticalSpoofer.gaussian(this.prng, op.options);
+          setAtPath(result, op.field, StatisticalSpoofer.gaussian(this.prng, op.options));
           break;
         case 'uniform':
-          result[op.field] = StatisticalSpoofer.uniform(this.prng, op.options);
+          setAtPath(result, op.field, StatisticalSpoofer.uniform(this.prng, op.options));
           break;
         case 'poisson':
-          result[op.field] = StatisticalSpoofer.poisson(this.prng, op.options);
+          setAtPath(result, op.field, StatisticalSpoofer.poisson(this.prng, op.options));
           break;
         case 'categorical':
-          result[op.field] = CategoricalSpoofer.sample(this.prng, op.weights);
+          setAtPath(result, op.field, CategoricalSpoofer.sample(this.prng, op.weights));
           break;
         case 'generative':
-          result[op.field] = await this.fuzzer.fuzz(op.options);
+          setAtPath(result, op.field, await this.fuzzer.fuzz(op.options));
           break;
       }
     }
