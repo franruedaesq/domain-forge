@@ -2,6 +2,7 @@
 
 > A deterministic, highly extensible TypeScript library for **Domain Randomization**, **Data Spoofing**, and **Scenario Fuzzing**.
 
+[![CI](https://github.com/franruedaesq/domain-forge/actions/workflows/ci.yml/badge.svg)](https://github.com/franruedaesq/domain-forge/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/domain-forge)](https://www.npmjs.com/package/domain-forge)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
