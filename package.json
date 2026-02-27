@@ -4,7 +4,7 @@
   "description": "A deterministic, highly extensible TypeScript library for Domain Randomization, Data Spoofing, and Scenario Fuzzing.",
   "keywords": ["domain-randomization", "fuzzing", "testing", "simulation", "machine-learning", "typescript"],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/franruedaesq/domain-forge.git"
